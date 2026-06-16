@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lunai – Your AI Study Assistant</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0f1117;
+    --surface:   #181c27;
+    --card:      #1e2333;
+    --border:    #2a3050;
+    --accent:    #6c63ff;
+    --accent2:   #a78bfa;
+    --green:     #34d399;
+    --text:      #e8eaf0;
+    --muted:     #8b90a8;
+    --bubble-user: #6c63ff;
+    --bubble-bot:  #1e2333;
+    --radius:    14px;
+    --font-display: 'Sora', sans-serif;
+    --font-body:    'Inter', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 0 18px #6c63ff55;
+  }
+  header h1 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  header h1 span { color: var(--accent2); }
+  .status-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-left: auto;
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; } 50% { opacity:.4; }
+  }
+  .status-label {
+    font-size: 0.75rem;
+    color: var(--green);
+    font-weight: 500;
+  }
+
+  /* ─── QUICK CHIPS ─── */
+  .chips-bar {
+    width: 100%;
+    max-width: 760px;
+    padding: 14px 16px 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .18s;
+    font-family: var(--font-body);
+    font-weight: 500;
+  }
+  .chip:hover {
+    border-color: var(--accent);
+    color: var(--accent2);
+    background: #6c63ff18;
+  }
+
+  /* ─── CHAT WINDOW ─── */
+  .chat-wrap {
+    width: 100%;
+    max-width: 760px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px 16px;
+    gap: 0;
+  }
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 4px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    max-height: calc(100vh - 260px);
+    scroll-behavior: smooth;
+  }
+  #messages::-webkit-scrollbar { width: 5px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .msg {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    animation: fadeUp .25s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .msg.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .avatar.bot {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    box-shadow: 0 0 10px #6c63ff44;
+  }
+  .avatar.user {
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+
+  .bubble {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .msg.bot .bubble {
+    background: var(--bubble-bot);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+  .msg.user .bubble {
+    background: var(--bubble-user);
+    border-bottom-right-radius: 4px;
+    color: #fff;
+  }
+
+  /* Bot bubble markdown-style */
+  .bubble strong { color: var(--accent2); font-weight: 600; }
+  .bubble ul { padding-left: 18px; margin-top: 4px; }
+  .bubble li { margin-bottom: 4px; }
+  .bubble .tag {
+    display: inline-block;
+    background: #6c63ff22;
+    color: var(--accent2);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 0.78rem;
+    margin-bottom: 6px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Typing indicator */
+  .typing-dots {
+    display: flex; gap: 5px; padding: 6px 2px;
+  }
+  .typing-dots span {
+    width: 7px; height: 7px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: .2s; }
+  .typing-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
+
+  /* ─── INPUT BAR ─── */
+  .input-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 12px;
+    transition: border-color .2s;
+  }
+  .input-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px #6c63ff22;
+  }
+  #userInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    resize: none;
+    min-height: 22px;
+    max-height: 120px;
+    line-height: 1.5;
+  }
+  #userInput::placeholder { color: var(--muted); }
+  #sendBtn {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    width: 36px; height: 36px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background .15s, transform .1s;
+  }
+  #sendBtn:hover { background: var(--accent2); }
+  #sendBtn:active { transform: scale(.93); }
+  #sendBtn svg { fill: #fff; }
+
+  .hint {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">🎓</div>
+  <h1>Lun<span>ai</span></h1>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+    <span class="status-label">Online</span>
+    <div class="status-dot"></div>
+  </div>
+</header>
+
+<div class="chips-bar">
+  <button class="chip" onclick="sendChip('Help me make a study schedule for my exams')">📅 Study schedule</button>
+  <button class="chip" onclick="sendChip('How do I manage my time better as a student?')">⏰ Time management</button>
+  <button class="chip" onclick="sendChip('Explain the Pomodoro technique to me')">🍅 Pomodoro</button>
+  <button class="chip" onclick="sendChip('Help me break down a big assignment into steps')">📝 Assignment help</button>
+  <button class="chip" onclick="sendChip('Give me tips for studying more effectively')">💡 Study tips</button>
+</div>
+
+<div class="chat-wrap">
+  <div id="messages">
+    <div class="msg bot">
+      <div class="avatar bot">🎓</div>
+      <div class="bubble">
+        <span class="tag">Lunai</span><br>
+        Hey! I'm your personal <strong>Study Assistant</strong>. I can help you with:
+        <ul>
+          <li>📚 Explaining topics & homework questions</li>
+          <li>📅 Building study schedules & calendars</li>
+          <li>⏰ Time management strategies</li>
+          <li>📝 Breaking down big assignments</li>
+          <li>💡 Study techniques & focus tips</li>
+        </ul>
+        What would you like help with today?
+      </div>
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <textarea id="userInput" rows="1" placeholder="Ask me anything about studying, assignments, or time management…"></textarea>
+    <button id="sendBtn" title="Send">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+  <p class="hint">Press Enter to send · Shift+Enter for new line</p>
+</div>
+
+<script>
+const messagesEl = document.getElementById('messages');
+const input = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+
+// Auto-resize textarea
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+sendBtn.addEventListener('click', sendMessage);
+
+function sendChip(text) {
+  input.value = text;
+  sendMessage();
+}
+
+function scrollBottom() {
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function appendMessage(role, html) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const avatar = document.createElement('div');
+  avatar.className = `avatar ${role}`;
+  avatar.textContent = role === 'bot' ? '🎓' : '🧑';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = html;
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  messagesEl.appendChild(div);
+  scrollBottom();
+  return bubble;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typing';
+  div.innerHTML = `
+    <div class="avatar bot">🎓</div>
+    <div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>
+  `;
+  messagesEl.appendChild(div);
+  scrollBottom();
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+// Conversation history for context
+const history = [];
+
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text) return;
+
+  appendMessage('user', escapeHtml(text));
+  history.push({ role: 'user', content: text });
+  input.value = '';
+  input.style.height = 'auto';
+  showTyping();
+  sendBtn.disabled = true;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: `You are Lunai, a friendly and encouraging AI study assistant for students. You help with:
+- Explaining academic topics, concepts, and homework questions clearly
+- Creating personalized study schedules and exam plans
+- Time management strategies and productivity techniques
+- Breaking down large assignments into manageable steps
+- Study techniques like spaced repetition, active recall, Pomodoro, mind mapping
+- Calendar planning and deadline management
+- Motivation and overcoming procrastination
+
+Keep responses concise, warm, and practical. Use bullet points, bold text, and emojis to make responses easy to scan. Always be encouraging and positive. If a student seems stressed, acknowledge it and help them break things into smaller steps.
+
+Format responses in clean HTML using: <strong>, <ul>, <li>, <br>. Do not use markdown — only HTML tags. Keep response length appropriate — short for simple questions, detailed for complex ones.`,
+        messages: history
+      })
+    });
+
+    const data = await response.json();
+    removeTyping();
+
+    if (data.content && data.content[0]) {
+      const replyText = data.content[0].text;
+      history.push({ role: 'assistant', content: replyText });
+      appendMessage('bot', replyText);
+    } else {
+      appendMessage('bot', 'Hmm, something went wrong. Try again in a moment!');
+    }
+  } catch (err) {
+    removeTyping();
+    appendMessage('bot', '⚠️ Connection issue. Please check your internet and try again.');
+  }
+
+  sendBtn.disabled = false;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>
